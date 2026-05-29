@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAKEIT — Imposter Party Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- CONNECTION STATUS -->
+<div class="conn-status" id="conn-status" style="display:none">
+  <span class="conn-dot" id="conn-dot"></span>
+  <span id="conn-label">Connected</span>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ===================== SCREEN: HOME ===================== -->
+<div class="screen active" id="screen-home">
+  <div class="logo-wrap">
+    <div class="logo">FAKEIT</div>
+    <div class="tagline">The Imposter Party Game</div>
+  </div>
+  <div class="home-btns">
+    <button class="btn btn-primary" onclick="showScreen('create')">🎮 Create Room</button>
+    <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Join Room</button>
+    <button class="btn btn-ghost btn-sm" onclick="showScreen('rules')">How to Play</button>
+  </div>
+  <p class="sub mt-lg text-center" style="max-width:300px">Works locally or over the internet. No account needed.</p>
+</div>
+
+<!-- ===================== SCREEN: RULES ===================== -->
+<div class="screen" id="screen-rules">
+  <div style="max-width:420px;width:100%">
+    <h2>HOW TO PLAY</h2>
+    <p class="sub mt-sm">3–8 players</p>
+    <div class="mt" style="width:100%">
+      <div class="rules-item"><div class="rules-num">1</div><div>Everyone joins a room. The host picks a topic category and starts the game.</div></div>
+      <div class="rules-item"><div class="rules-num">2</div><div>Each player privately sees their role: <strong>Crewmate</strong> sees the secret topic. The <strong>Imposter</strong> doesn't.</div></div>
+      <div class="rules-item"><div class="rules-num">3</div><div>During discussion, everyone chats. Crewmates give clues about the topic. Imposter bluffs!</div></div>
+      <div class="rules-item"><div class="rules-num">4</div><div>After discussion, everyone votes for who they think the Imposter is.</div></div>
+      <div class="rules-item"><div class="rules-num">5</div><div><strong>Crewmates win</strong> if they vote out the Imposter. <strong>Imposter wins</strong> if they survive!</div></div>
+    </div>
+    <div class="mt-lg">
+      <button class="btn btn-primary w-full" onclick="showScreen('home')">Got It! Let's Play</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: CREATE ===================== -->
+<div class="screen" id="screen-create">
+  <div class="gap-stack">
+    <div>
+      <h2>CREATE ROOM</h2>
+      <p class="sub mt-sm">You'll be the host</p>
+    </div>
+    <div>
+      <div class="section-label">Your Name</div>
+      <input type="text" id="create-name" placeholder="Enter your name" maxlength="20">
+    </div>
+    <div id="create-error" class="error-text" style="display:none"></div>
+    <button class="btn btn-primary w-full" onclick="createRoom()">Create Room</button>
+    <button class="btn btn-ghost w-full" onclick="showScreen('home')">← Back</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: JOIN ===================== -->
+<div class="screen" id="screen-join">
+  <div class="gap-stack">
+    <div>
+      <h2>JOIN ROOM</h2>
+      <p class="sub mt-sm">Enter the code from your host</p>
+    </div>
+    <div>
+      <div class="section-label">Your Name</div>
+      <input type="text" id="join-name" placeholder="Enter your name" maxlength="20">
+    </div>
+    <div>
+      <div class="section-label">Room Code</div>
+      <input type="text" id="join-code" placeholder="e.g. XKFG" maxlength="6" class="code-input">
+    </div>
+    <div id="join-error" class="error-text" style="display:none"></div>
+    <button class="btn btn-primary w-full" onclick="joinRoom()">Join Room</button>
+    <button class="btn btn-ghost w-full" onclick="showScreen('home')">← Back</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: LOBBY ===================== -->
+<div class="screen top" id="screen-lobby">
+  <div class="lobby-container">
+    <div class="lobby-header">
+      <div>
+        <h2>LOBBY</h2>
+        <p class="sub" id="lobby-status">Waiting for players...</p>
+      </div>
+      <span class="badge badge-host" id="lobby-host-badge" style="display:none">HOST</span>
+    </div>
+
+    <div class="room-code-display" id="lobby-code">——</div>
+    <p class="share-url">Share this code with friends to join!</p>
+    <button class="btn btn-ghost btn-sm mt-sm" style="width:100%" onclick="copyShareLink()">📋 Copy Join Link</button>
+
+    <div class="divider"></div>
+
+    <div class="section-label">Players (<span id="lobby-count">0</span>/8)</div>
+    <div class="player-list mt-sm" id="player-list"></div>
+
+    <!-- Host Settings -->
+    <div id="host-settings" style="display:none">
+      <div class="divider"></div>
+      <div class="section-label">Topic Categories</div>
+      <div class="category-grid mt-sm" id="category-grid"></div>
+
+      <div class="divider"></div>
+      <div class="section-label">Discussion Time</div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap" id="timer-options">
+        <button class="cat-btn selected" onclick="selectTimer(60,this)">1 min</button>
+        <button class="cat-btn" onclick="selectTimer(90,this)">1.5 min</button>
+        <button class="cat-btn" onclick="selectTimer(120,this)">2 min</button>
+        <button class="cat-btn" onclick="selectTimer(180,this)">3 min</button>
+      </div>
+
+      <div class="mt-lg" style="display:flex;gap:0.75rem">
+        <button class="btn btn-primary w-full" id="start-btn" onclick="startGame()" disabled>Start Game</button>
+      </div>
+    </div>
+
+    <div id="guest-waiting" style="display:none" class="mt-lg text-center">
+      <div class="waiting" style="justify-content:center">
+        <div class="spinner"></div> Waiting for host to start...
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: ROLE REVEAL ===================== -->
+<div class="screen" id="screen-role">
+  <p class="sub">Pass the device to:</p>
+  <h2 id="role-player-name" style="margin-top:0.25rem">—</h2>
+  <p class="sub mt-sm" style="font-size:0.8rem">Tap the card to reveal your role. Keep it secret!</p>
+
+  <div class="role-card" id="role-card" onclick="flipCard()">
+    <div class="role-card-inner">
+      <div class="role-face role-front">
+        <div style="font-size:3rem">🂠</div>
+        <p style="font-size:0.85rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Tap to reveal</p>
+      </div>
+      <div class="role-face role-back" id="role-back">
+        <div class="role-emoji" id="role-emoji">🕵️</div>
+        <div class="role-title" id="role-title">IMPOSTER</div>
+        <div class="role-topic" id="role-topic" style="display:none"></div>
+        <p style="font-size:0.75rem;color:rgba(255,255,255,0.5)" id="role-hint"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tap-hint" id="flip-hint">TAP CARD TO REVEAL</div>
+
+  <div id="role-actions" style="display:none;flex-direction:column;gap:0.75rem;align-items:center;margin-top:1rem">
+    <p class="sub" style="font-size:0.8rem">Memorize your role, then pass the device!</p>
+    <button class="btn btn-primary" onclick="nextRoleOrStart()">
+      <span id="role-btn-text">Next Player →</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: DISCUSSION ===================== -->
+<div class="screen top" id="screen-discussion" style="align-items:center">
+  <div class="discussion-layout">
+
+    <!-- Left / Top: Info Panel -->
+    <div class="disc-info-panel">
+      <div class="disc-topic-wrap">
+        <div class="section-label">YOUR ROLE</div>
+        <div class="my-role-badge" id="disc-role-badge">CREWMATE</div>
+        <div class="section-label mt-sm">SECRET TOPIC</div>
+        <div class="topic-display" id="disc-topic">—</div>
+      </div>
+
+      <div class="timer-ring">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="47" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+          <circle cx="55" cy="55" r="47" fill="none" stroke="url(#timerGrad)" stroke-width="7"
+            stroke-linecap="round" stroke-dasharray="295.3" id="timer-circle" stroke-dashoffset="0"/>
+          <defs>
+            <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ff3e6c"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="timer-ring-text" id="timer-display">--</div>
+      </div>
+
+      <div id="disc-host-ctrl" style="display:none">
+        <button class="btn btn-ghost btn-sm w-full" onclick="endDiscussion()">End Early</button>
+      </div>
+      <button class="btn btn-primary btn-sm w-full mt-sm" onclick="proceedToVoting()">Vote Now 🗳️</button>
+    </div>
+
+    <!-- Right / Bottom: Chat Panel -->
+    <div class="disc-chat-panel">
+      <div class="chat-header">
+        <span>💬 Discussion</span>
+        <span class="sub" style="font-size:0.75rem">Give clues, spot the imposter!</span>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Type a clue or message..." maxlength="120"
+          onkeydown="if(event.key==='Enter') sendChat()">
+        <button class="btn btn-primary btn-sm" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== SCREEN: VOTING ===================== -->
+<div class="screen top" id="screen-voting" style="align-items:center">
+  <div style="max-width:520px;width:100%;padding:0 1rem">
+    <h2 style="text-align:center">VOTE</h2>
+    <p class="sub text-center mt-sm">Who is the Imposter?</p>
+    <div class="vote-grid mt" id="vote-grid"></div>
+    <div class="votes-waiting mt" id="votes-waiting" style="display:none"></div>
+    <div class="mt text-center" id="vote-confirm-area" style="display:none">
+      <button class="btn btn-danger w-full" id="confirm-vote-btn" onclick="confirmVote()">Confirm Vote</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: REVEAL ===================== -->
+<div class="screen" id="screen-reveal">
+  <div id="reveal-confetti" style="font-size:3rem;margin-bottom:0.5rem"></div>
+  <h2>THE VOTES ARE IN</h2>
+
+  <div class="reveal-card">
+    <p class="sub" style="font-size:0.8rem">Most Votes</p>
+    <div class="reveal-name" id="reveal-accused">—</div>
+    <div id="reveal-verdict" class="reveal-badge">—</div>
+    <div class="divider"></div>
+    <p class="sub" style="font-size:0.85rem">The Imposter was</p>
+    <p id="reveal-imposter-name" style="font-weight:700;font-size:1.2rem;margin-top:0.25rem;color:var(--accent)">—</p>
+    <p class="sub mt-sm" style="font-size:0.8rem">Secret topic was</p>
+    <p id="reveal-topic" style="font-weight:700;font-size:1.1rem;margin-top:0.25rem;color:var(--accent3)">—</p>
+  </div>
+
+  <div style="width:100%;max-width:380px;margin-top:0.5rem">
+    <div class="section-label">SCOREBOARD</div>
+    <div class="scores-list card" id="scores-list"></div>
+  </div>
+
+  <div class="mt-lg" style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-green" id="play-again-btn" onclick="playAgain()" style="display:none">Play Again 🔄</button>
+    <button class="btn btn-ghost btn-sm" onclick="showScreen('home')">Leave Game</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
